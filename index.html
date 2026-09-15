@@ -1,12 +1,1035 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Newsandroid</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NewsFlow">
+<title>NewsFlow</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@600&display=swap');
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
+  --text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--green:#3fb950;--orange:#f0883e;--red:#f85149;--purple:#a371f7;
+  --nav-h:64px;--safe:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;font-size:15px;height:100dvh;overflow:hidden;user-select:none}
+.app{display:flex;flex-direction:column;height:100dvh}
+
+/* TOPBAR */
+.topbar{background:var(--bg);border-bottom:1px solid var(--border);padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:10}
+.brand{display:flex;align-items:center;gap:8px}
+.brand-icon{width:30px;height:30px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.brand h1{font-family:'Lora',serif;font-size:20px;font-weight:600;letter-spacing:-.02em}
+.icon-btn{width:36px;height:36px;border-radius:10px;border:none;background:var(--bg3);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer}
+.icon-btn:active{background:var(--border2)}
+.icon-btn.spin{animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.page{display:none}.page.active{display:block}
+
+/* BOTTOM NAV */
+.bottom-nav{background:var(--bg2);border-top:1px solid var(--border);display:flex;flex-shrink:0;padding-bottom:var(--safe)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 0;border:none;background:none;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;position:relative}
+.nav-icon{font-size:22px;line-height:1}.nav-label{font-size:10px;font-weight:500}
+.nav-btn.active{color:var(--accent)}
+.badge{position:absolute;top:6px;right:calc(50% - 14px);background:var(--red);color:#fff;font-size:9px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg2)}
+
+/* FEED PAGE */
+.feed-header{padding:14px 16px 6px;display:flex;align-items:center;gap:8px}
+.zone-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 12px 6px 8px;font-size:13px;font-weight:500;cursor:pointer}
+.zone-chip:active{background:var(--border2)}
+.zone-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+
+.filter-row{display:flex;gap:6px;padding:6px 16px 8px;overflow-x:auto;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:5px 12px;border-radius:16px;border:1px solid var(--border2);background:none;color:var(--text2);font-size:12px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;transition:all .15s}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#0d1117}
+
+/* keyword filter bar */
+.kw-bar{display:flex;align-items:center;gap:6px;padding:0 16px 8px}
+.kw-bar input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:7px 11px;font-size:13px;font-family:'Inter',sans-serif;outline:none}
+.kw-bar input:focus{border-color:var(--accent)}
+.kw-bar input::placeholder{color:var(--text3)}
+.kw-clear{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 2px;line-height:1}
+
+.ptr{text-align:center;padding:10px;font-size:12px;color:var(--text3);display:none}
+.ptr.on{display:block}
+.news-list{padding:4px 0 12px}
+
+/* NEWS CARD */
+.news-card{display:flex;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);text-decoration:none;color:inherit;cursor:pointer}
+.news-card:active{background:var(--bg2)}
+.card-bar{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:18px}
+.card-body{flex:1;min-width:0}
+.card-meta{display:flex;align-items:center;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.card-src{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.card-time{font-size:11px;color:var(--text3);white-space:nowrap}
+.new-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.card-title{font-size:15px;font-weight:500;line-height:1.4;color:var(--text);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-desc{font-size:13px;color:var(--text2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-kw-match{display:inline-block;font-size:10px;background:rgba(88,166,255,.15);color:var(--accent);border:1px solid rgba(88,166,255,.3);border-radius:4px;padding:1px 5px;margin-top:4px}
+
+/* STATES */
+.state-box{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;gap:10px}
+.state-icon{font-size:40px;opacity:.35}
+.state-title{font-size:16px;font-weight:600;color:var(--text2)}
+.state-sub{font-size:13px;color:var(--text3);line-height:1.5}
+.state-btn{margin-top:8px;padding:10px 20px;background:var(--accent);color:#0d1117;border:none;border-radius:10px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+
+/* FONTI PAGE */
+.section-pad{padding:16px 16px 0}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.section-head h2{font-size:18px;font-weight:600}
+.add-btn-big{display:flex;align-items:center;gap:6px;background:var(--accent);color:#0d1117;border:none;border-radius:10px;padding:7px 13px;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.source-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.src-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.src-info{flex:1;min-width:0}
+.src-name{font-size:15px;font-weight:500}
+.src-meta{font-size:11px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src-kw-badge{display:inline-block;font-size:10px;background:rgba(88,166,255,.12);color:var(--accent);border-radius:4px;padding:1px 5px;margin-top:3px}
+.src-actions{display:flex;gap:6px}
+.src-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer}
+.src-btn:active{background:var(--border2)}
+.empty-src{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-src .ei{font-size:36px;margin-bottom:10px;opacity:.4}
+
+/* SETTINGS */
+.settings-list{padding:12px 16px}
+.sg-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:6px 4px 8px}
+.sg{background:var(--bg2);border-radius:14px;overflow:hidden;margin-bottom:16px;border:1px solid var(--border)}
+.sr{display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid var(--border)}
+.sr:first-child{border-top:none}
+.sr-icon{font-size:20px;width:28px;text-align:center}
+.sr-body{flex:1}
+.sr-title{font-size:15px;font-weight:500}
+.sr-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.toggle{width:48px;height:27px;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--green);border-color:var(--green)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:var(--text3);transition:transform .2s,background .2s}
+.toggle.on::after{transform:translateX(21px);background:#fff}
+
+/* SHEETS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;align-items:flex-end}
+.overlay.open{display:flex}
+.sheet{background:var(--bg2);border-radius:20px 20px 0 0;width:100%;max-height:88dvh;overflow:hidden;display:flex;flex-direction:column;animation:up .28s cubic-bezier(.32,1,.32,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sh-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 4px;flex-shrink:0}
+.sh-title{font-size:17px;font-weight:600;padding:8px 20px 14px;flex-shrink:0}
+.sh-body{overflow-y:auto;flex:1}
+
+/* SMART SEARCH SHEET */
+.smart-input-wrap{padding:0 16px 12px;flex-shrink:0}
+.smart-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:14px;color:var(--text);padding:13px 14px;font-size:16px;font-family:'Inter',sans-serif;outline:none;transition:border .15s}
+.smart-input:focus{border-color:var(--accent)}
+.smart-input::placeholder{color:var(--text3)}
+.smart-hint{font-size:12px;color:var(--text3);padding:4px 16px 10px;flex-shrink:0;line-height:1.5}
+
+.search-btn{margin:0 16px;padding:13px;background:var(--accent);color:#0d1117;border:none;border-radius:12px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;width:calc(100% - 32px);flex-shrink:0}
+.search-btn:disabled{opacity:.5}
+.search-btn.loading{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+
+/* Result card */
+.result-card{margin:12px 16px 0;background:var(--bg3);border:1px solid var(--border2);border-radius:14px;padding:14px;display:none}
+.result-card.visible{display:block}
+.result-status{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.result-status-icon{font-size:20px}
+.result-status-text{font-size:14px;font-weight:500}
+.result-status-text small{display:block;font-size:12px;color:var(--text3);font-weight:400;margin-top:2px;word-break:break-all}
+.result-name-row{margin-bottom:8px}
+.result-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;font-weight:600}
+.result-name-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:14px;font-family:'Inter',sans-serif;outline:none}
+.result-name-input:focus{border-color:var(--accent)}
+.result-kw-row{margin-top:8px}
+.result-kw-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px;font-size:13px;font-family:'Inter',sans-serif;outline:none}
+.result-kw-input:focus{border-color:var(--accent)}
+.result-kw-input::placeholder{color:var(--text3)}
+.add-confirm-btn{width:100%;padding:12px;background:var(--green);color:#0d1117;border:none;border-radius:10px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:10px}
+
+/* Suggestions grid */
+.suggestions-wrap{padding:12px 16px;flex-shrink:0}
+.suggestions-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;font-weight:600}
+.suggestions-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sug-item{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 11px;cursor:pointer;transition:background .12s}
+.sug-item:active{background:var(--border2)}
+.sug-emoji{font-size:18px;margin-bottom:3px}
+.sug-name{font-size:13px;font-weight:500}
+.sug-sub{font-size:11px;color:var(--text3);margin-top:1px}
+
+/* ZONE SHEET */
+.zone-search-wrap{padding:0 12px 10px;flex-shrink:0;position:relative}
+.zone-search-icon{position:absolute;left:24px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.zone-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:10px 12px 10px 34px;font-size:15px;font-family:'Inter',sans-serif;outline:none}
+.zone-input:focus{border-color:var(--accent)}
+.zone-input::placeholder{color:var(--text3)}
+.zone-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;cursor:pointer;margin:0 4px}
+.zone-row:active{background:var(--bg3)}
+.zone-row.sel{background:rgba(88,166,255,.08)}
+.ze{font-size:22px;width:30px;text-align:center}
+.zi{flex:1}.zn{font-size:15px;font-weight:500}.zs{font-size:12px;color:var(--text3);margin-top:1px}
+.zc{color:var(--accent);font-size:18px;display:none}.zone-row.sel .zc{display:block}
+.zone-sec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);padding:8px 20px 6px}
+
+/* CONFIRM SHEET */
+.confirm-msg{font-size:16px;line-height:1.5;color:var(--text2);margin-bottom:20px}
+.confirm-actions{display:flex;gap:10px}
+.confirm-ok{flex:1;padding:13px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer}
+.confirm-no{flex:1;padding:13px;background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:12px;font-size:15px;font-weight:500;font-family:'Inter',sans-serif;cursor:pointer}
+
+/* FORM helpers */
+.fl{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px;display:block}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:12px 14px;font-size:15px;font-family:'Inter',sans-serif;outline:none;transition:border .15s}
+.fi:focus{border-color:var(--accent)}
+.fi::placeholder{color:var(--text3)}
+.save-btn{width:100%;padding:14px;background:var(--accent);color:#0d1117;border:none;border-radius:12px;font-size:16px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;margin-top:16px}
+.save-btn:active{opacity:.85}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:calc(var(--nav-h) + var(--safe) + 12px);left:50%;transform:translateX(-50%);z-index:200;pointer-events:none;width:calc(100% - 32px);max-width:360px}
+.toast-msg{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;font-size:13px;color:var(--text);text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:tin .22s ease}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+::-webkit-scrollbar{width:0}
+</style>
 </head>
 <body>
-    <h1>Il sito è online!</h1>
-    <p>Questa è la pagina iniziale.</p>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">📡</div>
+      <h1>NewsFlow</h1>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button class="icon-btn" id="refreshBtn" onclick="refreshAll()">↻</button>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+    <!-- NOTIZIE -->
+    <div class="page active" id="pageFeed">
+      <div class="feed-header">
+        <div class="zone-chip" onclick="openZoneSheet()">
+          <div class="zone-dot"></div>
+          <span id="zoneLabel">Scegli zona</span>
+          <span style="color:var(--text3);font-size:11px">▾</span>
+        </div>
+      </div>
+      <div class="filter-row" id="filterRow">
+        <button class="chip active" data-h="3" onclick="setHours(this,3)">3 ore</button>
+        <button class="chip" data-h="6" onclick="setHours(this,6)">6 ore</button>
+        <button class="chip" data-h="12" onclick="setHours(this,12)">12 ore</button>
+        <button class="chip" data-h="24" onclick="setHours(this,24)">24 ore</button>
+        <button class="chip" data-h="48" onclick="setHours(this,48)">48 ore</button>
+        <button class="chip" data-h="168" onclick="setHours(this,168)">7 giorni</button>
+      </div>
+      <div class="kw-bar">
+        <input type="text" id="kwFilter" placeholder="🔍 Filtra per parola chiave…" oninput="renderFeed()">
+        <button class="kw-clear" onclick="clearKw()" title="Cancella filtro">×</button>
+      </div>
+      <div class="ptr on" id="ptr">Caricamento…</div>
+      <div class="news-list" id="newsList"></div>
+    </div>
+
+    <!-- FONTI -->
+    <div class="page" id="pageFonti">
+      <div class="section-pad">
+        <div class="section-head">
+          <h2>Le tue fonti</h2>
+          <button class="add-btn-big" onclick="openSmartSheet(-1)">+ Aggiungi</button>
+        </div>
+        <div id="sourceCards"></div>
+      </div>
+    </div>
+
+    <!-- IMPOSTAZIONI -->
+    <div class="page" id="pageSettings">
+      <div class="settings-list">
+        <div class="sg-label">Aggiornamento</div>
+        <div class="sg">
+          <div class="sr">
+            <div class="sr-icon">🔄</div>
+            <div class="sr-body"><div class="sr-title">Auto-refresh</div><div class="sr-sub">Ogni 15 minuti in background</div></div>
+            <div class="toggle on" id="autoToggle" onclick="toggleAuto()"></div>
+          </div>
+          <div class="sr">
+            <div class="sr-icon">🕐</div>
+            <div class="sr-body"><div class="sr-title">Ultimo aggiornamento</div><div class="sr-sub" id="lastUpLabel">Mai</div></div>
+          </div>
+        </div>
+        <div class="sg-label">Lettura</div>
+        <div class="sg">
+          <div class="sr">
+            <div class="sr-icon">✅</div>
+            <div class="sr-body"><div class="sr-title">Segna tutti come letti</div></div>
+            <button class="icon-btn" onclick="markAllSeen()">✓</button>
+          </div>
+          <div class="sr">
+            <div class="sr-icon">🗑</div>
+            <div class="sr-body"><div class="sr-title">Azzera cronologia letti</div></div>
+            <button class="icon-btn" onclick="clearSeen()">↺</button>
+          </div>
+        </div>
+        <div class="sg-label">App</div>
+        <div class="sg">
+          <div class="sr">
+            <div class="sr-icon">📲</div>
+            <div class="sr-body"><div class="sr-title">Installa su Android</div><div class="sr-sub">Chrome ⋮ → Aggiungi a schermata Home</div></div>
+          </div>
+          <div class="sr">
+            <div class="sr-icon">ℹ️</div>
+            <div class="sr-body"><div class="sr-title">NewsFlow 3.0</div><div class="sr-sub">Notizie locali intelligenti</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="navFeed" onclick="showPage('feed')">
+      <span class="nav-icon">📰</span><span class="nav-label">Notizie</span>
+      <span class="badge" id="newBadge" style="display:none">0</span>
+    </button>
+    <button class="nav-btn" id="navFonti" onclick="showPage('fonti')">
+      <span class="nav-icon">🔗</span><span class="nav-label">Fonti</span>
+    </button>
+    <button class="nav-btn" id="navSettings" onclick="showPage('settings')">
+      <span class="nav-icon">⚙️</span><span class="nav-label">Impostazioni</span>
+    </button>
+  </nav>
+</div>
+
+<!-- SMART ADD SHEET -->
+<div class="overlay" id="smartSheet" onclick="closeSmartSheet(event)">
+  <div class="sheet" style="max-height:92dvh">
+    <div class="sh-handle"></div>
+    <div class="sh-title" id="smartTitle">Aggiungi fonte</div>
+
+    <div class="smart-input-wrap">
+      <input class="smart-input" type="text" id="smartInput"
+        placeholder="Scrivi sito, città o argomento…"
+        oninput="onSmartInput()"
+        onkeydown="if(event.key==='Enter')doSearch()">
+    </div>
+    <div class="smart-hint" id="smartHint">Esempi: <em>corriere.it</em> · <em>notizie Milano</em> · <em>https://rss.app/feeds/…</em></div>
+
+    <button class="search-btn" id="searchBtn" onclick="doSearch()">🔍 Cerca feed</button>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-status">
+        <div class="result-status-icon" id="resultIcon">⏳</div>
+        <div class="result-status-text" id="resultText">Ricerca in corso…<small id="resultSub"></small></div>
+      </div>
+      <div class="result-name-row">
+        <div class="result-label">Nome etichetta</div>
+        <input class="result-name-input" type="text" id="resultName" placeholder="es. Corriere della Sera">
+      </div>
+      <div class="result-kw-row">
+        <div class="result-label">Filtro parole chiave <span style="font-weight:400;text-transform:none;font-size:11px">(opzionale)</span></div>
+        <input class="result-kw-input" type="text" id="resultKw" placeholder='es. Milano, economia — separa con virgola'>
+      </div>
+      <button class="add-confirm-btn" id="addConfirmBtn" onclick="confirmAdd()" style="display:none">✓ Aggiungi questa fonte</button>
+    </div>
+
+    <div class="suggestions-wrap" id="suggestionsWrap">
+      <div class="suggestions-label">Suggerimenti rapidi</div>
+      <div class="suggestions-grid" id="suggestionsGrid"></div>
+    </div>
+
+    <div style="height:calc(var(--safe) + 16px)"></div>
+  </div>
+</div>
+
+<!-- EDIT SOURCE SHEET -->
+<div class="overlay" id="editSheet" onclick="closeEditSheet(event)">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Modifica fonte</div>
+    <div class="sh-body" style="padding:0 16px calc(var(--safe)+24px)">
+      <span class="fl">Nome etichetta</span>
+      <input class="fi" type="text" id="editName" placeholder="Nome">
+      <span class="fl">Filtro parole chiave <span style="font-weight:400;text-transform:none;font-size:11px">(opzionale)</span></span>
+      <input class="fi" type="text" id="editKw" placeholder="es. Roma, politica — separa con virgola">
+      <span class="fl">Feed / Query (non modificare se funziona)</span>
+      <input class="fi" type="text" id="editQuery" placeholder="URL RSS o query Google News">
+      <button class="save-btn" onclick="saveEdit()">Salva modifiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE SHEET -->
+<div class="overlay" id="zoneSheet" onclick="closeZoneSheet(event)">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Scegli la tua zona</div>
+    <div class="zone-search-wrap">
+      <span class="zone-search-icon">🔍</span>
+      <input class="zone-input" type="text" id="zoneInput" placeholder="Cerca città…" oninput="renderZones(this.value)">
+    </div>
+    <div class="sh-body" id="zoneBody"></div>
+  </div>
+</div>
+
+<!-- CONFIRM SHEET -->
+<div class="overlay" id="confirmSheet" onclick="closeConfirmSheet(event)">
+  <div class="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Conferma</div>
+    <div class="sh-body" style="padding:8px 20px calc(var(--safe)+20px)">
+      <div class="confirm-msg" id="confirmMsg"></div>
+      <div class="confirm-actions">
+        <button class="confirm-ok" id="confirmOkBtn">Rimuovi</button>
+        <button class="confirm-no" onclick="closeConfirmSheet()">Annulla</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── KNOWN RSS FEEDS ──────────────────────────────────────────────────────────
+// Major Italian news sites with their known RSS URLs
+const KNOWN = {
+  'corriere.it':      'https://www.corriere.it/rss/homepage.xml',
+  'corriere':         'https://www.corriere.it/rss/homepage.xml',
+  'repubblica.it':    'https://www.repubblica.it/rss/homepage.rss',
+  'repubblica':       'https://www.repubblica.it/rss/homepage.rss',
+  'ansa.it':          'https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml',
+  'ansa':             'https://www.ansa.it/sito/notizie/topnews/topnews_rss.xml',
+  'ilmessaggero.it':  'https://www.ilmessaggero.it/rss/rss.xml',
+  'ilmessaggero':     'https://www.ilmessaggero.it/rss/rss.xml',
+  'lastampa.it':      'https://www.lastampa.it/rss',
+  'lastampa':         'https://www.lastampa.it/rss',
+  'ilsole24ore.com':  'https://www.ilsole24ore.com/rss/italia--mondo.xml',
+  'ilsole24ore':      'https://www.ilsole24ore.com/rss/italia--mondo.xml',
+  'sole24ore':        'https://www.ilsole24ore.com/rss/italia--mondo.xml',
+  'rainews.it':       'https://www.rainews.it/dl/rainews/media/feed-RSS-rai.xml',
+  'rainews':          'https://www.rainews.it/dl/rainews/media/feed-RSS-rai.xml',
+  'sky.it':           'https://tg24.sky.it/feed/',
+  'skytg24':          'https://tg24.sky.it/feed/',
+  'gazzetta.it':      'https://www.gazzetta.it/rss/home.xml',
+  'gazzetta':         'https://www.gazzetta.it/rss/home.xml',
+  'fanpage.it':       'https://www.fanpage.it/feed/',
+  'fanpage':          'https://www.fanpage.it/feed/',
+  'open.online':      'https://www.open.online/feed/',
+  'open':             'https://www.open.online/feed/',
+  'ilfattoquotidiano.it':'https://www.ilfattoquotidiano.it/feed/',
+  'ilfattoquotidiano':'https://www.ilfattoquotidiano.it/feed/',
+  'huffingtonpost.it':'https://www.huffingtonpost.it/feeds/index.xml',
+  'huffpost':         'https://www.huffingtonpost.it/feeds/index.xml',
+  'adnkronos.com':    'https://www.adnkronos.com/rss',
+  'adnkronos':        'https://www.adnkronos.com/rss',
+  'tgcom24.mediaset.it':'https://www.tgcom24.mediaset.it/rss/cronaca.xml',
+  'tgcom24':          'https://www.tgcom24.mediaset.it/rss/cronaca.xml',
+  // Today network
+  'romatoday.it':     'https://www.romatoday.it/rss/in-evidenza.xml',
+  'romatoday':        'https://www.romatoday.it/rss/in-evidenza.xml',
+  'milanotoday.it':   'https://www.milanotoday.it/rss/in-evidenza.xml',
+  'milanotoday':      'https://www.milanotoday.it/rss/in-evidenza.xml',
+  'napolitoday.it':   'https://www.napolitoday.it/rss/in-evidenza.xml',
+  'napolitoday':      'https://www.napolitoday.it/rss/in-evidenza.xml',
+  'torinotoday.it':   'https://www.torinotoday.it/rss/in-evidenza.xml',
+  'torinotoday':      'https://www.torinotoday.it/rss/in-evidenza.xml',
+  'baritoday.it':     'https://www.baritoday.it/rss/in-evidenza.xml',
+  'baritoday':        'https://www.baritoday.it/rss/in-evidenza.xml',
+  'firenzetoday.it':  'https://www.firenzetoday.it/rss/in-evidenza.xml',
+  'firenzetoday':     'https://www.firenzetoday.it/rss/in-evidenza.xml',
+  'palermotoday.it':  'https://www.palermotoday.it/rss/in-evidenza.xml',
+  'palermotoday':     'https://www.palermotoday.it/rss/in-evidenza.xml',
+  'genovatoday.it':   'https://www.genovatoday.it/rss/in-evidenza.xml',
+  'genovatoday':      'https://www.genovatoday.it/rss/in-evidenza.xml',
+  'veneziatoday.it':  'https://www.veneziatoday.it/rss/in-evidenza.xml',
+  'veneziatoday':     'https://www.veneziatoday.it/rss/in-evidenza.xml',
+  'bolognotoday.it':  'https://www.bolognotoday.it/rss/in-evidenza.xml',
+  'bolognotoday':     'https://www.bolognotoday.it/rss/in-evidenza.xml',
+};
+
+const SUGGESTIONS = [
+  {emoji:'🏛',name:'Roma',sub:'Notizie locali',q:'notizie Roma OR cronaca Roma'},
+  {emoji:'🏙',name:'Milano',sub:'Notizie locali',q:'notizie Milano OR cronaca Milano'},
+  {emoji:'🌋',name:'Napoli',sub:'Notizie locali',q:'notizie Napoli OR cronaca Napoli'},
+  {emoji:'📰',name:'Corriere',sub:'corriere.it',q:'corriere'},
+  {emoji:'📰',name:'Repubblica',sub:'repubblica.it',q:'repubblica'},
+  {emoji:'📡',name:'ANSA',sub:'Agenzia di stampa',q:'ansa'},
+  {emoji:'📺',name:'RaiNews',sub:'rainews.it',q:'rainews'},
+  {emoji:'⚽',name:'Sport / Calcio',sub:'Google News',q:'calcio serie A risultati'},
+  {emoji:'💹',name:'Economia',sub:'Google News',q:'economia finanza borsa italiana'},
+  {emoji:'⛅',name:'Meteo',sub:'Google News',q:'meteo allerta italia oggi'},
+];
+
+const ZONES = [
+  {id:'rm',e:'🏛',n:'Roma',r:'Lazio',q:'notizie Roma OR cronaca Roma'},
+  {id:'mi',e:'🏙',n:'Milano',r:'Lombardia',q:'notizie Milano OR cronaca Milano'},
+  {id:'na',e:'🌋',n:'Napoli',r:'Campania',q:'notizie Napoli OR cronaca Napoli'},
+  {id:'to',e:'🏔',n:'Torino',r:'Piemonte',q:'notizie Torino OR cronaca Torino'},
+  {id:'fi',e:'🌸',n:'Firenze',r:'Toscana',q:'notizie Firenze OR cronaca Firenze'},
+  {id:'bo',e:'🍝',n:'Bologna',r:'Emilia R.',q:'notizie Bologna OR cronaca Bologna'},
+  {id:'ba',e:'🌊',n:'Bari',r:'Puglia',q:'notizie Bari OR cronaca Bari'},
+  {id:'pa',e:'🍋',n:'Palermo',r:'Sicilia',q:'notizie Palermo OR cronaca Palermo'},
+  {id:'ge',e:'⚓',n:'Genova',r:'Liguria',q:'notizie Genova OR cronaca Genova'},
+  {id:'ve',e:'🚤',n:'Venezia',r:'Veneto',q:'notizie Venezia OR cronaca Venezia'},
+  {id:'ct',e:'🌋',n:'Catania',r:'Sicilia',q:'notizie Catania OR cronaca Catania'},
+  {id:'ts',e:'🌬',n:'Trieste',r:'F.V.G.',q:'notizie Trieste OR cronaca Trieste'},
+  {id:'ca',e:'🏝',n:'Cagliari',r:'Sardegna',q:'notizie Cagliari OR cronaca Cagliari'},
+  {id:'pg',e:'🫒',n:'Perugia',r:'Umbria',q:'notizie Perugia OR cronaca Perugia'},
+  {id:'tn',e:'⛷',n:'Trento',r:'Trentino',q:'notizie Trento OR cronaca Trento'},
+  {id:'an',e:'🏖',n:'Ancona',r:'Marche',q:'notizie Ancona OR cronaca Ancona'},
+  {id:'le',e:'🌅',n:'Lecce',r:'Puglia',q:'notizie Lecce OR cronaca Lecce'},
+  {id:'sa',e:'⛵',n:'Salerno',r:'Campania',q:'notizie Salerno OR cronaca Salerno'},
+  {id:'rc',e:'🍊',n:'Reggio Calabria',r:'Calabria',q:'notizie "Reggio Calabria"'},
+  {id:'vr',e:'🏰',n:'Verona',r:'Veneto',q:'notizie Verona OR cronaca Verona'},
+];
+
+const COLORS = ['#58a6ff','#3fb950','#f0883e','#a371f7','#f85149','#39c5cf','#d2a679','#79c0ff'];
+const PROXIES = [
+  u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,
+];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let S = { zone:null, hours:3, sources:[], articles:{}, seenIds:new Set(), auto:true, lastRefresh:null };
+let autoTimer = null;
+let editIdx = -1;
+let foundFeedUrl = '';
+let foundFeedName = '';
+
+function save() {
+  try { localStorage.setItem('nf3', JSON.stringify({...S, seenIds:[...S.seenIds].slice(-3000)})); } catch(e){}
+}
+function load() {
+  try {
+    const p = JSON.parse(localStorage.getItem('nf3')||'{}');
+    S.zone = p.zone||null; S.hours = p.hours||3; S.sources = p.sources||[];
+    S.seenIds = new Set(p.seenIds||[]); S.auto = p.auto!==undefined?p.auto:true;
+    S.lastRefresh = p.lastRefresh||null;
+  } catch(e){}
+}
+
+// ── RSS PARSING ───────────────────────────────────────────────────────────────
+function parseRss(xml) {
+  const doc = new DOMParser().parseFromString(xml,'application/xml');
+  return Array.from(doc.querySelectorAll('item,entry')).map(el=>{
+    const g = t=>el.querySelector(t)?.textContent||'';
+    const link = g('link')||el.querySelector('guid')?.textContent||
+                 el.querySelector('link')?.getAttribute('href')||'';
+    const raw = g('title');
+    const dash = raw.lastIndexOf(' - ');
+    const title = dash>0?raw.slice(0,dash):raw;
+    const pub = el.querySelector('source')?.textContent||g('author')||g('creator')||
+                (dash>0?raw.slice(dash+3):'');
+    return {
+      title, link, pub,
+      pubDate: g('pubDate')||g('published')||g('updated'),
+      description: (g('description')||g('summary')).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim(),
+      guid: g('guid')||link,
+    };
+  }).filter(i=>i.title&&i.link);
+}
+
+async function proxyFetch(url) {
+  let last;
+  for(const fn of PROXIES){
+    try{
+      const r = await fetch(fn(url),{signal:AbortSignal.timeout(10000)});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const d = await r.json();
+      const xml = d.contents||d;
+      if(typeof xml!=='string') throw new Error('no xml');
+      return xml;
+    }catch(e){last=e;}
+  }
+  throw last||new Error('Rete non raggiungibile');
+}
+
+async function tryFeedUrl(url) {
+  const xml = await proxyFetch(url);
+  const items = parseRss(xml);
+  if(items.length===0) throw new Error('Feed vuoto');
+  return {url, items};
+}
+
+// Auto-discover RSS from a domain or URL
+async function discoverFeed(input) {
+  const trimmed = input.trim();
+
+  // 1. Direct RSS URL?
+  if(/^https?:\/\//i.test(trimmed)){
+    try{ return await tryFeedUrl(trimmed); }catch(e){}
+    // Maybe it's a website homepage — try discovery on it
+  }
+
+  // 2. Known site lookup (name or domain)
+  const key = trimmed.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'').replace(/\s+/g,'');
+  if(KNOWN[key]){
+    try{ return await tryFeedUrl(KNOWN[key]); }catch(e){}
+  }
+
+  // 3. Domain-based? Try common feed paths
+  let domain = '';
+  if(/^https?:\/\//i.test(trimmed)){
+    domain = trimmed.replace(/^https?:\/\//i,'').replace(/\/.*/,'');
+  } else if(/^[\w-]+\.[\w.-]+$/.test(key)){
+    domain = key;
+  }
+
+  if(domain){
+    const base = `https://${domain.replace(/^www\./,'')}`;
+    const candidates = [
+      `${base}/feed`, `${base}/feed/`, `${base}/rss`,
+      `${base}/rss.xml`, `${base}/feed.xml`, `${base}/atom.xml`,
+      `${base}/feeds`, `${base}/rss/homepage.xml`,
+      `${base}/feeds/posts/default`,
+    ];
+    // Also try scraping homepage for RSS link
+    try{
+      const html = await proxyFetch(base);
+      const m = html.match(/<link[^>]+type=["']application\/(rss|atom)\+xml["'][^>]+href=["']([^"']+)["']/i);
+      if(m){
+        const feedUrl = m[2].startsWith('http') ? m[2] : base+m[2];
+        candidates.unshift(feedUrl);
+      }
+    }catch(e){}
+
+    for(const c of candidates){
+      try{ return await tryFeedUrl(c); }catch(e){}
+    }
+
+    // 4. Fallback: Google News site:domain
+    const gnUrl = googleNewsUrl('site:'+domain);
+    try{
+      const items = await fetchGoogleNews(gnUrl);
+      if(items.length>0) return {url:gnUrl, items, isGoogleNews:true};
+    }catch(e){}
+  }
+
+  // 5. Keywords → Google News
+  const gnUrl = googleNewsUrl(trimmed);
+  const items = await fetchGoogleNews(gnUrl);
+  return {url:gnUrl, items, isGoogleNews:true};
+}
+
+function googleNewsUrl(q){
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=it&gl=IT&ceid=IT:it`;
+}
+
+async function fetchGoogleNews(url){
+  const xml = await proxyFetch(url);
+  return parseRss(xml);
+}
+
+// Guess a nice name from input
+function guessFeedName(input){
+  const t = input.trim();
+  const key = t.toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\/.*$/,'').replace(/\s+/g,'');
+  // known name mapping
+  const names = {
+    'corriere.it':'Corriere della Sera','corriere':'Corriere della Sera',
+    'repubblica.it':'la Repubblica','repubblica':'la Repubblica',
+    'ansa.it':'ANSA','ansa':'ANSA',
+    'lastampa.it':'La Stampa','lastampa':'La Stampa',
+    'ilsole24ore.com':'Il Sole 24 Ore','ilsole24ore':'Il Sole 24 Ore','sole24ore':'Il Sole 24 Ore',
+    'rainews.it':'RaiNews','rainews':'RaiNews',
+    'sky.it':'Sky TG24','skytg24':'Sky TG24',
+    'gazzetta.it':'La Gazzetta dello Sport','gazzetta':'La Gazzetta dello Sport',
+    'romatoday.it':'Roma Today','romatoday':'Roma Today',
+    'milanotoday.it':'Milano Today','milanotoday':'Milano Today',
+    'napolitoday.it':'Napoli Today','napolitoday':'Napoli Today',
+  };
+  if(names[key]) return names[key];
+  if(/^https?:\/\//i.test(t)) return t.replace(/^https?:\/\//i,'').replace(/^www\./,'').replace(/\/.*/,'');
+  // Capitalize first letters
+  return t.split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
+}
+
+// ── SMART SEARCH ─────────────────────────────────────────────────────────────
+function onSmartInput(){
+  const val = document.getElementById('smartInput').value.trim();
+  document.getElementById('resultCard').classList.remove('visible');
+  foundFeedUrl = '';
+  document.getElementById('searchBtn').disabled = !val;
+}
+
+async function doSearch(){
+  const val = document.getElementById('smartInput').value.trim();
+  if(!val) return;
+  const btn = document.getElementById('searchBtn');
+  btn.textContent = '⏳ Ricerca in corso…';
+  btn.classList.add('loading'); btn.disabled = true;
+  const card = document.getElementById('resultCard');
+  card.classList.add('visible');
+  document.getElementById('resultIcon').textContent = '⏳';
+  document.getElementById('resultText').textContent = 'Cerco il feed…';
+  document.getElementById('resultSub').textContent = val;
+  document.getElementById('addConfirmBtn').style.display='none';
+  document.getElementById('suggestionsWrap').style.display='none';
+
+  try{
+    const res = await discoverFeed(val);
+    foundFeedUrl = res.url;
+    foundFeedName = guessFeedName(val);
+    document.getElementById('resultIcon').textContent = '✅';
+    document.getElementById('resultText').textContent = res.isGoogleNews
+      ? `Feed Google News trovato — ${res.items.length} articoli`
+      : `Feed RSS trovato — ${res.items.length} articoli`;
+    document.getElementById('resultSub').textContent = res.url;
+    document.getElementById('resultName').value = foundFeedName;
+    document.getElementById('resultKw').value = '';
+    document.getElementById('addConfirmBtn').style.display='block';
+  }catch(e){
+    foundFeedUrl = '';
+    document.getElementById('resultIcon').textContent = '❌';
+    document.getElementById('resultText').textContent = 'Feed non trovato';
+    document.getElementById('resultSub').textContent = 'Prova con un termine più preciso o un URL diretto';
+    document.getElementById('addConfirmBtn').style.display='none';
+  }
+  btn.textContent = '🔍 Cerca di nuovo';
+  btn.classList.remove('loading'); btn.disabled = false;
+}
+
+function confirmAdd(){
+  if(!foundFeedUrl) return;
+  const name = document.getElementById('resultName').value.trim() || foundFeedName || 'Fonte';
+  const kw = document.getElementById('resultKw').value.trim();
+  if(editIdx >= 0){
+    S.sources[editIdx] = {...S.sources[editIdx], name, query:foundFeedUrl, kw};
+    delete S.articles[editIdx];
+  } else {
+    const color = COLORS[S.sources.length % COLORS.length];
+    S.sources.push({name, query:foundFeedUrl, color, kw});
+  }
+  save();
+  closeSmartSheet();
+  renderSourceCards();
+  refreshAll();
+  showToast(`"${name}" aggiunta!`);
+}
+
+function openSmartSheet(idx){
+  editIdx = idx;
+  foundFeedUrl = '';
+  document.getElementById('smartInput').value = '';
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('searchBtn').textContent = '🔍 Cerca feed';
+  document.getElementById('searchBtn').classList.remove('loading');
+  document.getElementById('searchBtn').disabled = true;
+  document.getElementById('suggestionsWrap').style.display='block';
+  renderSuggestions();
+  if(idx >= 0){
+    const s = S.sources[idx];
+    document.getElementById('smartTitle').textContent = 'Modifica fonte';
+    document.getElementById('smartInput').value = s.query;
+    foundFeedUrl = s.query; foundFeedName = s.name;
+    document.getElementById('searchBtn').disabled = false;
+    const card = document.getElementById('resultCard');
+    card.classList.add('visible');
+    document.getElementById('resultIcon').textContent = '✅';
+    document.getElementById('resultText').textContent = 'Fonte attuale';
+    document.getElementById('resultSub').textContent = s.query;
+    document.getElementById('resultName').value = s.name;
+    document.getElementById('resultKw').value = s.kw||'';
+    document.getElementById('addConfirmBtn').style.display='block';
+    document.getElementById('addConfirmBtn').textContent = '✓ Salva modifiche';
+  } else {
+    document.getElementById('smartTitle').textContent = 'Aggiungi fonte';
+    document.getElementById('addConfirmBtn').textContent = '✓ Aggiungi questa fonte';
+  }
+  document.getElementById('smartSheet').classList.add('open');
+  setTimeout(()=>document.getElementById('smartInput').focus(),300);
+}
+function closeSmartSheet(e){
+  if(e&&e.target!==document.getElementById('smartSheet'))return;
+  document.getElementById('smartSheet').classList.remove('open');
+  document.getElementById('suggestionsWrap').style.display='block';
+  editIdx=-1;
+}
+
+function renderSuggestions(){
+  document.getElementById('suggestionsGrid').innerHTML = SUGGESTIONS.map(s=>
+    `<div class="sug-item" onclick="fillSuggestion('${s.q.replace(/'/g,"\\'")}','${s.name.replace(/'/g,"\\'")}')">
+      <div class="sug-emoji">${s.emoji}</div>
+      <div class="sug-name">${s.name}</div>
+      <div class="sug-sub">${s.sub}</div>
+    </div>`
+  ).join('');
+}
+function fillSuggestion(q,name){
+  document.getElementById('smartInput').value = q;
+  foundFeedName = name;
+  document.getElementById('searchBtn').disabled = false;
+  doSearch();
+}
+
+// ── EDIT SHEET ───────────────────────────────────────────────────────────────
+function openEditSheet(idx){
+  editIdx = idx;
+  const s = S.sources[idx];
+  document.getElementById('editName').value = s.name;
+  document.getElementById('editKw').value = s.kw||'';
+  document.getElementById('editQuery').value = s.query;
+  document.getElementById('editSheet').classList.add('open');
+}
+function closeEditSheet(e){
+  if(e&&e.target!==document.getElementById('editSheet'))return;
+  document.getElementById('editSheet').classList.remove('open');
+  editIdx=-1;
+}
+function saveEdit(){
+  if(editIdx<0) return;
+  S.sources[editIdx].name = document.getElementById('editName').value.trim()||S.sources[editIdx].name;
+  S.sources[editIdx].kw = document.getElementById('editKw').value.trim();
+  S.sources[editIdx].query = document.getElementById('editQuery').value.trim()||S.sources[editIdx].query;
+  delete S.articles[editIdx];
+  save(); closeEditSheet(); renderSourceCards(); refreshAll();
+}
+
+// ── ZONE ─────────────────────────────────────────────────────────────────────
+function openZoneSheet(){
+  document.getElementById('zoneInput').value='';
+  renderZones('');
+  document.getElementById('zoneSheet').classList.add('open');
+}
+function closeZoneSheet(e){
+  if(e&&e.target!==document.getElementById('zoneSheet'))return;
+  document.getElementById('zoneSheet').classList.remove('open');
+}
+function renderZones(f){
+  const ff=f.toLowerCase().trim();
+  const zs=ff?ZONES.filter(z=>z.n.toLowerCase().includes(ff)||z.r.toLowerCase().includes(ff)):ZONES;
+  const cur=S.zone?.id;
+  let html=`<div class="zone-sec">Città</div>`;
+  html+=zs.map(z=>`<div class="zone-row ${cur===z.id?'sel':''}" onclick="setZone(${JSON.stringify(z).replace(/"/g,'&quot;')})">
+    <div class="ze">${z.e}</div><div class="zi"><div class="zn">${z.n}</div><div class="zs">${z.r}</div></div>
+    <div class="zc">✓</div></div>`).join('');
+  if(!ff){
+    html+=`<div class="zone-sec" style="margin-top:12px">Zona personalizzata</div>
+    <div style="padding:8px 16px 16px">
+      <input class="fi" type="text" id="czName" placeholder="Nome zona (es. Salento)">
+      <input class="fi" type="text" id="czQ" placeholder='Parole chiave (es. notizie Salento)' style="margin-top:8px">
+      <button class="save-btn" onclick="addCustomZone()" style="margin-top:10px">Usa questa zona</button>
+    </div>`;
+  }
+  document.getElementById('zoneBody').innerHTML=html;
+}
+function setZone(z){
+  S.zone=z;
+  document.getElementById('zoneLabel').textContent=`${z.e} ${z.n}`;
+  save(); closeZoneSheet(); delete S.articles['zone']; refreshAll();
+}
+function addCustomZone(){
+  const n=document.getElementById('czName').value.trim();
+  const q=document.getElementById('czQ').value.trim();
+  if(!n||!q){showToast('Compila nome e parole chiave');return;}
+  setZone({id:'custom',e:'📍',n,r:'Personalizzata',q});
+}
+
+// ── CONFIRM ───────────────────────────────────────────────────────────────────
+function askConfirm(msg,onOk){
+  document.getElementById('confirmMsg').textContent=msg;
+  document.getElementById('confirmOkBtn').onclick=()=>{closeConfirmSheet();onOk();};
+  document.getElementById('confirmSheet').classList.add('open');
+}
+function closeConfirmSheet(e){
+  if(e&&e.target!==document.getElementById('confirmSheet'))return;
+  document.getElementById('confirmSheet').classList.remove('open');
+}
+
+// ── FETCH ─────────────────────────────────────────────────────────────────────
+async function fetchSource(src){
+  const url = /^https?:\/\//i.test(src.query.trim()) ? src.query.trim() : googleNewsUrl(src.query);
+  const xml = await proxyFetch(url);
+  return parseRss(xml);
+}
+
+async function refreshAll(){
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('spin');
+  document.getElementById('ptr').classList.add('on');
+  const tasks=[];
+  if(S.zone) tasks.push(proxyFetch(googleNewsUrl(S.zone.q)).then(x=>{S.articles['zone']=parseRss(x);}).catch(()=>{}));
+  S.sources.forEach((s,i)=>tasks.push(fetchSource(s).then(it=>{S.articles[i]=it;}).catch(()=>{})));
+  await Promise.all(tasks);
+  S.lastRefresh=new Date().toISOString();
+  document.getElementById('lastUpLabel').textContent='Aggiornato: '+new Date(S.lastRefresh).toLocaleTimeString('it-IT');
+  save(); btn.classList.remove('spin');
+  document.getElementById('ptr').classList.remove('on');
+  renderFeed(); renderSourceCards();
+}
+function setupAuto(){clearInterval(autoTimer);if(S.auto)autoTimer=setInterval(refreshAll,15*60000);}
+
+// ── KEYWORD FILTER ────────────────────────────────────────────────────────────
+function kwMatch(item, kwStr){
+  if(!kwStr) return true;
+  const kws = kwStr.toLowerCase().split(',').map(k=>k.trim()).filter(Boolean);
+  const hay = (item.title+' '+item.description+' '+item.pub).toLowerCase();
+  return kws.some(k=>hay.includes(k));
+}
+function itemMatchesSourceKw(item, src){
+  if(!src||!src.kw) return true;
+  return kwMatch(item, src.kw);
+}
+
+// ── RENDER FEED ───────────────────────────────────────────────────────────────
+function itemId(i){
+  try{return btoa(unescape(encodeURIComponent((i.guid||i.link||i.title||'').slice(0,80)))).slice(0,24);}
+  catch{return (i.guid||i.link||i.title||'').slice(0,24);}
+}
+function isToday(d){const n=new Date();return d.getDate()===n.getDate()&&d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();}
+
+function renderFeed(){
+  const list=document.getElementById('newsList');
+  const badge=document.getElementById('newBadge');
+  const globalKw=document.getElementById('kwFilter').value.trim();
+
+  if(!S.zone&&S.sources.length===0){
+    list.innerHTML=`<div class="state-box"><div class="state-icon">📍</div>
+      <div class="state-title">Nessuna zona o fonte</div>
+      <div class="state-sub">Scegli la tua zona o aggiungi una fonte personalizzata.</div>
+      <button class="state-btn" onclick="openZoneSheet()">Scegli zona</button></div>`;
+    badge.style.display='none'; return;
+  }
+
+  let all=[];
+  if(S.zone&&S.articles['zone']){
+    const cut=Date.now()-S.hours*3600000;
+    S.articles['zone'].filter(a=>new Date(a.pubDate).getTime()>=cut&&itemMatchesSourceKw(a,null)&&kwMatch(a,globalKw))
+      .forEach(a=>all.push({...a,_color:'#3fb950',_src:S.zone.n}));
+  }
+  S.sources.forEach((src,i)=>{
+    const cut=Date.now()-S.hours*3600000;
+    (S.articles[i]||[]).filter(a=>new Date(a.pubDate).getTime()>=cut&&itemMatchesSourceKw(a,src)&&kwMatch(a,globalKw))
+      .forEach(a=>all.push({...a,_color:src.color,_src:src.name,_kw:src.kw}));
+  });
+  all.sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+
+  const newCount=all.filter(a=>!S.seenIds.has(itemId(a))).length;
+  badge.style.display=newCount>0?'flex':'none';
+  if(newCount>0) badge.textContent=newCount>99?'99+':newCount;
+
+  if(all.length===0){
+    list.innerHTML=`<div class="state-box"><div class="state-icon">🔍</div>
+      <div class="state-title">Nessuna notizia</div>
+      <div class="state-sub">Nessun risultato nel periodo selezionato${globalKw?' per "'+globalKw+'"':''}.<br>Prova ad ampliare il periodo o modificare il filtro.</div></div>`;
+    return;
+  }
+
+  list.innerHTML=all.map(item=>{
+    const id=itemId(item);
+    const isNew=!S.seenIds.has(id);
+    const t=new Date(item.pubDate);
+    const when=isNaN(t)?'':isToday(t)?t.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):
+      t.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' '+t.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+    const safeTitle=(item.title||'').replace(/</g,'&lt;');
+    const safeDesc=(item.description||'').replace(/</g,'&lt;').slice(0,200);
+    const srcLabel=item.pub&&item.pub!==item._src?item.pub:item._src;
+    const kwBadge = item._kw ? `<div class="card-kw-match">🔍 ${item._kw}</div>` : '';
+    return `<a class="news-card" href="${item.link}" target="_blank" rel="noopener" onclick="markSeen('${id}')">
+      <div class="card-bar" style="background:${item._color}"></div>
+      <div class="card-body">
+        <div class="card-meta">
+          <span class="card-src" style="color:${item._color}">${srcLabel}</span>
+          <span class="card-time">${when}</span>
+          ${isNew?'<div class="new-dot"></div>':''}
+        </div>
+        <div class="card-title">${safeTitle}</div>
+        ${safeDesc?`<div class="card-desc">${safeDesc}</div>`:''}
+        ${kwBadge}
+      </div></a>`;
+  }).join('');
+}
+
+function markSeen(id){S.seenIds.add(id);save();setTimeout(renderFeed,200);}
+function clearKw(){document.getElementById('kwFilter').value='';renderFeed();}
+
+// ── RENDER SOURCES ────────────────────────────────────────────────────────────
+function renderSourceCards(){
+  const el=document.getElementById('sourceCards');
+  if(S.sources.length===0){
+    el.innerHTML=`<div class="empty-src"><div class="ei">🔗</div><p>Nessuna fonte personalizzata.<br>Clicca <strong>Aggiungi</strong> per iniziare.</p></div>`;
+    return;
+  }
+  el.innerHTML=S.sources.map((s,i)=>`
+    <div class="source-card">
+      <div class="src-dot" style="background:${s.color}"></div>
+      <div class="src-info">
+        <div class="src-name">${s.name}</div>
+        <div class="src-meta">${s.query}</div>
+        ${s.kw?`<div class="src-kw-badge">🔍 ${s.kw}</div>`:''}
+      </div>
+      <div class="src-actions">
+        <button class="src-btn" onclick="openEditSheet(${i})">✎</button>
+        <button class="src-btn" onclick="delSource(${i})">×</button>
+      </div>
+    </div>`).join('');
+}
+function delSource(idx){
+  askConfirm(`Rimuovere "${S.sources[idx].name}"?`,()=>{
+    const na={};
+    S.sources.forEach((_,i)=>{if(i<idx&&S.articles[i])na[i]=S.articles[i];if(i>idx&&S.articles[i])na[i-1]=S.articles[i];});
+    S.sources.splice(idx,1); S.articles={...na,zone:S.articles['zone']};
+    save(); renderSourceCards(); renderFeed();
+  });
+}
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  const pm={feed:'pageFeed',fonti:'pageFonti',settings:'pageSettings'};
+  const nm={feed:'navFeed',fonti:'navFonti',settings:'navSettings'};
+  document.getElementById(pm[name]).classList.add('active');
+  document.getElementById(nm[name]).classList.add('active');
+  document.getElementById('content').scrollTop=0;
+  if(name==='fonti') renderSourceCards();
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────────────
+function setHours(btn,h){
+  document.querySelectorAll('.chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); S.hours=h; save(); renderFeed();
+}
+function setActiveChip(){
+  document.querySelectorAll('.chip').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.h)===S.hours));
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────────────────────
+function toggleAuto(){S.auto=!S.auto;document.getElementById('autoToggle').classList.toggle('on',S.auto);save();setupAuto();}
+function markAllSeen(){Object.values(S.articles).flat().forEach(a=>S.seenIds.add(itemId(a)));save();renderFeed();showToast('Tutti letti');}
+function clearSeen(){S.seenIds.clear();save();renderFeed();showToast('Cronologia azzerata');}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastT;
+function showToast(msg){
+  clearTimeout(toastT);
+  const w=document.getElementById('toastWrap');
+  w.innerHTML=`<div class="toast-msg">${msg}</div>`;
+  toastT=setTimeout(()=>{w.innerHTML='';},3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+load();
+if(S.zone) document.getElementById('zoneLabel').textContent=`${S.zone.e} ${S.zone.n}`;
+setActiveChip();
+document.getElementById('autoToggle').classList.toggle('on',S.auto);
+if(S.lastRefresh) document.getElementById('lastUpLabel').textContent='Aggiornato: '+new Date(S.lastRefresh).toLocaleTimeString('it-IT');
+renderSuggestions();
+renderFeed();
+setupAuto();
+if(S.zone||S.sources.length>0) refreshAll(); else document.getElementById('ptr').classList.remove('on');
+
+// PWA manifest
+const mf={name:'NewsFlow',short_name:'NewsFlow',start_url:'.',display:'standalone',background_color:'#0d1117',theme_color:'#0d1117',
+  icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d1117'/%3E%3Ctext y='72' x='12' font-size='72'%3E📡%3C/text%3E%3C/svg%3E",sizes:'192x192',type:'image/svg+xml'}]};
+const bl=new Blob([JSON.stringify(mf)],{type:'application/manifest+json'});
+const lk=document.createElement('link');lk.rel='manifest';lk.href=URL.createObjectURL(bl);document.head.appendChild(lk);
+</script>
 </body>
 </html>
-
